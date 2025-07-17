@@ -1,0 +1,11 @@
+
+{
+  "name": "tildenparc-spotify-stats",
+  "version": "1.0.0",
+  "main": "api/spotify-stats.js",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  }
+}
