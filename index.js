@@ -33,7 +33,7 @@ function getAccessToken(callback) {
   });
 }
 
-// Stats endpoint
+// Stats endpoint for artist data
 app.get('/stats', (req, res) => {
   getAccessToken((err, access_token) => {
     if (err) {
@@ -41,7 +41,7 @@ app.get('/stats', (req, res) => {
     }
 
     const options = {
-      url: 'https://api.spotify.com/v1/me',
+      url: 'https://api.spotify.com/v1/artists/1XoUuYOyZEkGmYeCTaIWyj',
       headers: { 'Authorization': 'Bearer ' + access_token },
       json: true
     };
@@ -49,12 +49,14 @@ app.get('/stats', (req, res) => {
     request.get(options, (error, response, body) => {
       if (!error && response.statusCode === 200) {
         res.json({
-          name: body.display_name || 'Unknown',
+          name: body.name,
           followers: body.followers ? body.followers.total : 'N/A',
-          profile_url: body.external_urls ? body.external_urls.spotify : 'N/A'
+          popularity: body.popularity || 'N/A',
+          genres: body.genres || [],
+          spotify_url: body.external_urls ? body.external_urls.spotify : 'N/A'
         });
       } else {
-        res.status(500).json({ error: 'Failed to fetch stats from Spotify', details: body });
+        res.status(500).json({ error: 'Failed to fetch artist stats', details: body });
       }
     });
   });
@@ -62,7 +64,7 @@ app.get('/stats', (req, res) => {
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.send('<h1>Spotify Stats API is running!</h1><p>Visit <a href="/stats">/stats</a> to view your stats.</p>');
+  res.send('<h1>Spotify Artist Stats API is running!</h1><p>Visit <a href="/stats">/stats</a> to view artist stats.</p>');
 });
 
 // Start server
