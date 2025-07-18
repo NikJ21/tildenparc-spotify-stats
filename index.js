@@ -1,74 +1,65 @@
 
-const express = require('express');
-const request = require('request');
-const app = express();
+import express from 'express';
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
 
-// Spotify credentials from environment variables
+dotenv.config();
+const app = express();
+const PORT = process.env.PORT || 3000;
+
 const client_id = process.env.SPOTIFY_CLIENT_ID;
 const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 const refresh_token = process.env.SPOTIFY_REFRESH_TOKEN;
 
-const token_url = 'https://accounts.spotify.com/api/token';
-
-// Function to get an access token using the refresh token
-function getAccessToken(callback) {
-  const authOptions = {
-    url: token_url,
+async function getAccessToken() {
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
     headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': 'Basic ' + Buffer.from(client_id + ':' + client_secret).toString('base64')
     },
-    form: {
+    body: new URLSearchParams({
       grant_type: 'refresh_token',
-      refresh_token: refresh_token
-    },
-    json: true
-  };
-
-  request.post(authOptions, (error, response, body) => {
-    if (!error && response.statusCode === 200) {
-      callback(null, body.access_token);
-    } else {
-      callback(error || body);
-    }
+      refresh_token
+    })
   });
+
+  const data = await response.json();
+  return data.access_token;
 }
 
-// Stats endpoint for artist data
-app.get('/stats', (req, res) => {
-  getAccessToken((err, access_token) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to retrieve access token', details: err });
+app.get('/api/stats', async (req, res) => {
+  try {
+    const access_token = await getAccessToken();
+    const artistResponse = await fetch(`https://api.spotify.com/v1/artists/3GjbpcGv2AIvBaWHZkmp94`, {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+
+    if (!artistResponse.ok) {
+      const errorDetails = await artistResponse.json();
+      return res.status(artistResponse.status).json({
+        error: 'Failed to fetch artist stats',
+        details: errorDetails
+      });
     }
 
-    const options = {
-      url: 'https://api.spotify.com/v1/artists/1XoUuYOyZEkGmYeCTaIWyj',
-      headers: { 'Authorization': 'Bearer ' + access_token },
-      json: true
-    };
-
-    request.get(options, (error, response, body) => {
-      if (!error && response.statusCode === 200) {
-        res.json({
-          name: body.name,
-          followers: body.followers ? body.followers.total : 'N/A',
-          popularity: body.popularity || 'N/A',
-          genres: body.genres || [],
-          spotify_url: body.external_urls ? body.external_urls.spotify : 'N/A'
-        });
-      } else {
-        res.status(500).json({ error: 'Failed to fetch artist stats', details: body });
-      }
+    const artistData = await artistResponse.json();
+    res.json({
+      name: artistData.name,
+      followers: artistData.followers.total,
+      genres: artistData.genres,
+      popularity: artistData.popularity,
+      profile_url: artistData.external_urls.spotify
     });
-  });
+  } catch (error) {
+    res.status(500).json({ error: 'Something went wrong', details: error.message });
+  }
 });
 
-// Root endpoint
 app.get('/', (req, res) => {
-  res.send('<h1>Spotify Artist Stats API is running!</h1><p>Visit <a href="/stats">/stats</a> to view artist stats.</p>');
+  res.send('Spotify Artist Stats API is running! Visit /api/stats to view stats.');
 });
 
-// Start server
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
