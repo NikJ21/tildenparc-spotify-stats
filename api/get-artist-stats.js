@@ -59,8 +59,8 @@ async function getMonthlyListeners(artistId) {
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                'x-rapidapi-host': 'spotify-artist-monthly-listeners.p.rapidapi.com',
-                'x-rapidapi-key': process.env.RAPIDAPI_KEY
+                'x-rapidapi-key': process.env.RAPIDAPI_KEY,
+                'x-rapidapi-host': 'spotify-artist-monthly-listeners.p.rapidapi.com'
             }
         });
 
