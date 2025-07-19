@@ -82,7 +82,7 @@ export default async function handler(req, res) {
     try {
         const accessToken = await getAccessToken();
         const stats = await getArtistStats(accessToken);
-        const monthlyListeners = await getMonthlyListeners(ARTIST_ID);
+        // const monthlyListeners = await getMonthlyListeners(ARTIST_ID);
 
         res.status(200).json({
             artist: stats.name,
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
             genres: stats.genres,
             popularity: stats.popularity,
             spotify_url: stats.external_urls.spotify,
-            monthly_listeners: monthlyListeners.monthly_listeners
+            // monthly_listeners: monthlyListeners.monthly_listeners
         });
     } catch (error) {
         res.status(500).json({ message: 'Failed to fetch artist stats', error: error.message });
