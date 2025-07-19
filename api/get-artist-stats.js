@@ -1,12 +1,3 @@
-
-const express = require('express');
-const axios = require('axios');
-const qs = require('querystring');
-require('dotenv').config();
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.SPOTIFY_REFRESH_TOKEN;
@@ -17,18 +8,26 @@ async function getAccessToken() {
     const authString = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
 
     try {
-        const response = await axios.post(tokenUrl, qs.stringify({
-            grant_type: 'refresh_token',
-            refresh_token: REFRESH_TOKEN,
-        }), {
+        const response = await fetch(tokenUrl, {
+            method: 'POST',
             headers: {
                 'Authorization': `Basic ${authString}`,
                 'Content-Type': 'application/x-www-form-urlencoded',
-            }
+            },
+            body: new URLSearchParams({
+                grant_type: 'refresh_token',
+                refresh_token: REFRESH_TOKEN,
+            })
         });
-        return response.data.access_token;
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.access_token;
     } catch (error) {
-        console.error('Error fetching access token:', error.response ? error.response.data : error.message);
+        console.error('Error fetching access token:', error.message);
         throw new Error('Could not get access token');
     }
 }
@@ -36,7 +35,7 @@ async function getAccessToken() {
 async function getArtistStats(accessToken) {
     const url = `https://api.spotify.com/v1/artists/${ARTIST_ID}`;
     try {
-        const response = await axios.get(url, {
+        const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         return response.data;
@@ -46,11 +45,11 @@ async function getArtistStats(accessToken) {
     }
 }
 
-app.get('/', async (req, res) => {
+export default async function handler(req, res) {
     try {
         const accessToken = await getAccessToken();
         const stats = await getArtistStats(accessToken);
-        res.json({
+        res.status(200).json({
             artist: stats.name,
             followers: stats.followers.total,
             genres: stats.genres,
@@ -58,10 +57,6 @@ app.get('/', async (req, res) => {
             spotify_url: stats.external_urls.spotify
         });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch artist stats' });
+        res.status(500).json({ message: 'Failed to fetch artist stats', error: error.message });
     }
-});
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+};
