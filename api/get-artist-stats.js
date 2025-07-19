@@ -38,7 +38,15 @@ async function getArtistStats(accessToken) {
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
-        return response.data;
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('artist stats');
+        console.log(data);
+        return data;
     } catch (error) {
         console.error('Error fetching artist stats:', error.response ? error.response.data : error.message);
         throw new Error('Could not fetch artist stats');
